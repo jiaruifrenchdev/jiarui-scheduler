@@ -78,13 +78,14 @@ def read_identity(user: CurrentUser = Depends(get_current_user)) -> dict:
 
 @app.post("/auth/register", status_code=status.HTTP_201_CREATED)
 def register_user(payload: RegisterCreate) -> dict:
-    """Register a user and email them a confirmation link (via Resend).
+    """Register a user and create a ready-to-use, confirmed account.
 
-    When Resend is configured, the account is created **unconfirmed** and a
-    Supabase-issued confirmation link is delivered through Resend; the user
-    cannot log in until they click it. When Resend is not configured, we fall
-    back to the previous behaviour and auto-confirm the account so signup still
-    works in local/dev setups without email.
+    NOTE: Email verification is currently DISABLED — signup immediately creates
+    a confirmed account and sends no email. The Resend-based verification flow is
+    preserved (commented out below, plus the helpers it uses) so it can be turned
+    back on later. The Resend env vars (RESEND_API_KEY, EMAIL_FROM, FRONTEND_URL)
+    are intentionally kept; they're only used by the disabled block and by the
+    /auth/forgot-password endpoint.
     """
     client = get_service_client()
     conflicts = _registration_conflicts(
@@ -96,47 +97,53 @@ def register_user(payload: RegisterCreate) -> dict:
     if any(conflicts.values()):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=conflicts)
 
-    if not settings.resend_api_key:
-        # No email provider configured — keep the legacy auto-confirm flow.
-        try:
-            created = _create_confirmed_supabase_user(payload)
-        except httpx.HTTPStatusError as exc:
-            raise _registration_http_error(exc) from exc
-        return {
-            "id": created.get("id"),
-            "email": created.get("email", payload.email),
-            "needs_verification": False,
-            "message": "Account created. You can log in now.",
-        }
-
-    # Create the user unconfirmed AND mint the confirmation token in one call.
+    # Auto-confirm: account is usable immediately, no email required.
     try:
-        created, confirm_url = _create_unconfirmed_user_with_link(payload)
+        created = _create_confirmed_supabase_user(payload)
     except httpx.HTTPStatusError as exc:
         raise _registration_http_error(exc) from exc
-
-    user_id = created.get("id")
-    try:
-        send_verification_email(
-            to=payload.email,
-            full_name=payload.full_name,
-            confirm_url=confirm_url,
-        )
-    except EmailError as exc:
-        # Roll back the orphaned auth user so the email is free to retry.
-        if user_id:
-            _delete_supabase_user(user_id)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Could not send the confirmation email. Please try again.",
-        ) from exc
-
     return {
-        "id": user_id,
+        "id": created.get("id"),
         "email": created.get("email", payload.email),
-        "needs_verification": True,
-        "message": "Account created. Check your email to confirm your address.",
+        "needs_verification": False,
+        "message": "Account created. You can log in now.",
     }
+
+    # ------------------------------------------------------------------------
+    # EMAIL VERIFICATION (DISABLED) — re-enable by removing the early `return`
+    # above and uncommenting this block. It creates the user UNCONFIRMED and
+    # emails a Supabase confirmation link via Resend; login is blocked until the
+    # user clicks it. The frontend already handles the "email not confirmed"
+    # state and the confirmation page.
+    # ------------------------------------------------------------------------
+    # # Create the user unconfirmed AND mint the confirmation token in one call.
+    # try:
+    #     created, confirm_url = _create_unconfirmed_user_with_link(payload)
+    # except httpx.HTTPStatusError as exc:
+    #     raise _registration_http_error(exc) from exc
+    #
+    # user_id = created.get("id")
+    # try:
+    #     send_verification_email(
+    #         to=payload.email,
+    #         full_name=payload.full_name,
+    #         confirm_url=confirm_url,
+    #     )
+    # except EmailError as exc:
+    #     # Roll back the orphaned auth user so the email is free to retry.
+    #     if user_id:
+    #         _delete_supabase_user(user_id)
+    #     raise HTTPException(
+    #         status_code=status.HTTP_502_BAD_GATEWAY,
+    #         detail="Could not send the confirmation email. Please try again.",
+    #     ) from exc
+    #
+    # return {
+    #     "id": user_id,
+    #     "email": created.get("email", payload.email),
+    #     "needs_verification": True,
+    #     "message": "Account created. Check your email to confirm your address.",
+    # }
 
 
 @app.post("/auth/forgot-password")
