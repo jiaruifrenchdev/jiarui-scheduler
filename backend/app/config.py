@@ -44,6 +44,20 @@ class Settings(BaseSettings):
     admin_email: str = ""
     admin_password: str = ""
 
+    # ---- Email (Resend) ----
+    # Resend API key — used to deliver signup confirmation emails. Server-side
+    # only. When empty, registration falls back to auto-confirming the account
+    # (no verification email), preserving the previous behaviour.
+    resend_api_key: str = ""
+    # From address for outgoing email. Must be either Resend's sandbox sender
+    # ("onboarding@resend.dev", only delivers to the account owner) or an address
+    # on a domain you've verified in Resend. A display name is allowed, e.g.
+    # "Jiarui French <noreply@yourdomain.com>".
+    email_from: str = "onboarding@resend.dev"
+    # Public base URL of the frontend, used to build the confirmation link that
+    # lands on /auth/confirm. No trailing slash.
+    frontend_url: str = "http://localhost:3000"
+
 
 @lru_cache
 def get_settings() -> Settings:

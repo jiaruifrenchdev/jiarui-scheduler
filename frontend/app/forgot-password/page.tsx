@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { createClient } from "@/lib/supabase/client";
-
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -16,20 +14,30 @@ export default function ForgotPasswordPage() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    // resetPasswordForEmail emails a recovery link that lands on /auth/confirm,
-    // which forwards a verified recovery session to /reset-password.
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/confirm?next=/reset-password`,
-    });
-    setLoading(false);
-
-    if (error) {
-      setError("Something went wrong. Please try again.");
-      return;
+    // The backend mints a Supabase recovery link and delivers it via Resend
+    // (avoids Supabase's rate-limited built-in SMTP). The link lands on
+    // /auth/confirm, which forwards a verified recovery session to
+    // /reset-password.
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/auth/forgot-password`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim() }),
+        },
+      );
+      if (!response.ok) {
+        setError("Something went wrong. Please try again.");
+        return;
+      }
+      // Always show success (don't reveal whether the email exists).
+      setSent(true);
+    } catch {
+      setError("Could not reach the server. Please try again in a moment.");
+    } finally {
+      setLoading(false);
     }
-    // Always show success (don't reveal whether the email exists).
-    setSent(true);
   }
 
   if (sent) {

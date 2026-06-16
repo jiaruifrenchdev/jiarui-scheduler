@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
+import { EyeIcon, EyeOffIcon } from "../eye-icons";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function ResetPasswordPage() {
   const [hasSession, setHasSession] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -93,27 +95,49 @@ export default function ResetPasswordPage() {
 
         <div className="field">
           <label className="label">New password</label>
-          <input
-            className="input"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 8 characters"
-            autoComplete="new-password"
-            required
-          />
+          <div className="input-reveal">
+            <input
+              className="input"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
+              required
+            />
+            <button
+              type="button"
+              className="reveal-btn"
+              onClick={() => setShowPassword((s) => !s)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
         </div>
         <div className="field">
           <label className="label">Confirm new password</label>
-          <input
-            className="input"
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Re-enter your new password"
-            autoComplete="new-password"
-            required
-          />
+          <div className="input-reveal">
+            <input
+              className="input"
+              type={showPassword ? "text" : "password"}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="Re-enter your new password"
+              autoComplete="new-password"
+              required
+            />
+            <button
+              type="button"
+              className="reveal-btn"
+              onClick={() => setShowPassword((s) => !s)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
         </div>
 
         <button className="btn btn-primary" type="submit" disabled={loading || done}>

@@ -40,6 +40,7 @@ export default function RegisterPage() {
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [needsVerify, setNeedsVerify] = useState(false);
 
   const update =
     (key: keyof typeof form) =>
@@ -137,6 +138,7 @@ export default function RegisterPage() {
         return;
       }
 
+      setNeedsVerify(Boolean(body?.needs_verification));
       setDone(true);
     } catch {
       setGeneralError(
@@ -152,9 +154,22 @@ export default function RegisterPage() {
       <main className="auth-wrap">
         <div className="card">
           <BrandHeader />
-          <h1 className="card-title">Account created</h1>
+          <h1 className="card-title">
+            {needsVerify ? "Confirm your email" : "Account created"}
+          </h1>
           <p className="card-sub">
-            Your account for <strong>{form.email}</strong> is ready. You can log in now.
+            {needsVerify ? (
+              <>
+                We sent a confirmation link to <strong>{form.email}</strong>.
+                Click it to activate your account, then log in. Check your spam
+                folder if you don&apos;t see it within a few minutes.
+              </>
+            ) : (
+              <>
+                Your account for <strong>{form.email}</strong> is ready. You can
+                log in now.
+              </>
+            )}
           </p>
           <Link href="/login" className="btn btn-primary">
             Go to login

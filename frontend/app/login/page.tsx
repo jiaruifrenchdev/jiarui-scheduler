@@ -109,9 +109,9 @@ export default function LoginPage() {
             />
             Remember me
           </label>
-          {/* <Link href="/forgot-password" className="link">
+          <Link href="/forgot-password" className="link">
             Forgot password?
-          </Link> */}
+          </Link>
         </div>
 
         <button className="btn btn-primary" type="submit" disabled={loading}>

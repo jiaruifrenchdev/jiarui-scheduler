@@ -89,6 +89,19 @@ class RegisterCreate(BaseModel):
         return value
 
 
+class ForgotPasswordRequest(BaseModel):
+    """Payload for POST /auth/forgot-password."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
 class ReservationOut(BaseModel):
     id: str
     slot_id: str
