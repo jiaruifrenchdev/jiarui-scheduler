@@ -121,14 +121,12 @@ class SupabaseReservationRepo:
         return int(resp.count or 0)
 
     def count_active_for_student_week(self, student_id: str, week_start: date) -> int:
-        week_end = week_start + timedelta(days=4)
         resp = (
             self.client.table("reservations")
-            .select("id", count="exact")
+            .select("id, time_slots!inner(week_start)", count="exact")
             .eq("student_id", student_id)
-            .gte("slot_date", week_start.isoformat())
-            .lte("slot_date", week_end.isoformat())
             .eq("status", "active")
+            .eq("time_slots.week_start", week_start.isoformat())
             .execute()
         )
         return int(resp.count or 0)

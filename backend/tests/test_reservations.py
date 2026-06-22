@@ -161,6 +161,32 @@ class ReservationRulesTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 409)
         self.assertIn("Phase 1", str(ctx.exception.detail))
 
+    def test_phase1_ignores_reservations_from_previous_target_week(self) -> None:
+        previous_week = date(2026, 7, 13)
+        target_week = date(2026, 7, 20)
+        repo = FakeRepo(
+            [
+                make_slot("jul13", previous_week, previous_week),
+                make_slot("jul20", target_week, target_week),
+            ]
+        )
+        user = make_user("student")
+
+        create_reservation(
+            FakePayload(slot_id="jul13", topic="Speaking"),
+            user,
+            repo,
+            now=datetime(2026, 7, 6, 12, 1, tzinfo=TZ),
+        )
+        create_reservation(
+            FakePayload(slot_id="jul20", topic="Writing"),
+            user,
+            repo,
+            now=datetime(2026, 7, 13, 12, 1, tzinfo=TZ),
+        )
+
+        self.assertEqual(len(repo.reservations), 2)
+
     def test_phase2_allows_one_per_day(self) -> None:
         week_start = date(2026, 6, 8)
         repo = FakeRepo(
